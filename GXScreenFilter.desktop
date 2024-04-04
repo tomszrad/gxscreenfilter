@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=GXScreenFilter
+Comment=Simple GUI for xscreenfilter by caph1993
+Exec=/usr/local/bin/GXScreenFilter/gxscreenfilter
+Icon=/usr/share/icons/gxscreenfilter.png
+Terminal=false
+Type=Application
+Categories=Utility;
