@@ -1,6 +1,8 @@
 
 # gxscreenfilter
 
+![screenshot](https://raw.githubusercontent.com/tomszrad/gxscreenfilter/main/screenshot.png)
+
 A simple GUI for `xscreenfilter` tool by [caph1993](https://github.com/caph1993/), which allows you to change the temperature and brightness of the screen in linux.
 
 
