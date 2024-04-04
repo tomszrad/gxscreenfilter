@@ -11,8 +11,8 @@ class MySliderApplet(Gtk.Box):
     def __init__(self):
         Gtk.Box.__init__(self, orientation=Gtk.Orientation.VERTICAL, spacing=6)
         
-        default_value1 = 3000
-        default_value2 = 0.5
+        default_value1 = 6500
+        default_value2 = 1
 
         try:
             with open('/tmp/gxscreenfilter_values', 'r') as f:
