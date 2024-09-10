@@ -1,15 +1,16 @@
 #!/bin/bash
 python3 -- <<END
-# simple gui for xscreenfilter by caph1993
 import gi
 import subprocess
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 
 class MySliderApplet(Gtk.Box):
-    def __init__(self):
+    def __init__(self, window):
         Gtk.Box.__init__(self, orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.window = window
+        self.interaction_started = False
         
         default_value1 = 6500
         default_value2 = 1
@@ -23,12 +24,45 @@ class MySliderApplet(Gtk.Box):
         except FileNotFoundError:
             pass
         
-        adjustment1 = Gtk.Adjustment(value=default_value1, lower=0, upper=6500, step_increment=100, page_increment=100, page_size=0)
+        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        
+        close_button = Gtk.Button(label="×")
+        close_button.set_size_request(20, 20)
+        close_button.get_style_context().add_class("close-button")
+        close_button.connect("clicked", self.on_close_clicked)
+        
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_data("""
+        .close-button {
+            font-size: 1.5em;
+            padding: 0;
+            min-height: 1.2em;
+            min-width: 1.2em;
+        }
+        """)
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+        
+        header_box.pack_start(Gtk.Box(spacing=10), True, True, 0)
+        header_box.pack_start(close_button, False, False, 0)
+        
+        label1 = Gtk.Label(label="Redness")
+        label1.set_hexpand(True)
+        label1.set_valign(Gtk.Align.CENTER)
+        
+        adjustment1 = Gtk.Adjustment(value=default_value1, lower=1000, upper=6500, step_increment=100, page_increment=100, page_size=0)
         self.slider1 = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adjustment1)
         self.slider1.set_digits(0)
         self.slider1.set_hexpand(True)
         self.slider1.set_valign(Gtk.Align.CENTER)
         self.slider1.connect("value-changed", self.on_slider_changed)
+
+        label2 = Gtk.Label(label="Brightness")
+        label2.set_hexpand(True)
+        label2.set_valign(Gtk.Align.CENTER)
         
         adjustment2 = Gtk.Adjustment(value=default_value2, lower=0, upper=1, step_increment=0.01, page_increment=0.1, page_size=0)
         self.slider2 = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adjustment2)
@@ -37,10 +71,23 @@ class MySliderApplet(Gtk.Box):
         self.slider2.set_valign(Gtk.Align.CENTER)
         self.slider2.connect("value-changed", self.on_slider_changed)
         
-        self.pack_start(self.slider1, True, True, 0)
-        self.pack_start(self.slider2, True, True, 0)
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        main_box.pack_start(header_box, False, False, 0)
+        main_box.pack_start(label1, True, True, 0)
+        main_box.pack_start(self.slider1, True, True, 0)
+        main_box.pack_start(label2, True, True, 0)
+        main_box.pack_start(self.slider2, True, True, 0)
         
+        self.add(main_box)
+        
+    def on_close_clicked(self, button):
+        Gtk.main_quit()
+    
     def on_slider_changed(self, widget):
+        if not self.interaction_started:
+            self.interaction_started = True
+            self.window.connect("window-state-event", on_window_state_event, self.window)
+        
         value1 = int(self.slider1.get_value())
         value2 = round(self.slider2.get_value(), 2)
         
@@ -49,15 +96,28 @@ class MySliderApplet(Gtk.Box):
         
         subprocess.run(["xscreenfilter", str(value1), str(value2)])
 
+def on_button_press_event(widget, event, window):
+    if event.button == 1:
+        window.begin_move_drag(event.button, event.x_root, event.y_root, event.time)
+
+def on_window_state_event(widget, event, window):
+    if not window.is_active():
+        Gtk.main_quit()
+
 def main():
     Gtk.init(None)
     window = Gtk.Window(title="gxscreenfilter")
     window.set_default_size(400, 100)
     window.connect("destroy", Gtk.main_quit)
     
-    applet = MySliderApplet()
+    applet = MySliderApplet(window)
     window.add(applet)
-    
+
+    window.set_keep_above(True)
+    window.set_decorated(False)
+    window.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.FOCUS_CHANGE_MASK)
+    window.connect("button-press-event", on_button_press_event, window)
+
     window.show_all()
     Gtk.main()
 
